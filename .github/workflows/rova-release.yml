@@ -103,6 +103,7 @@ jobs:
 
       # O motor responde sem abrir janela: "version" e um "regist" com PIN inválido (falha antes da rede).
       - name: Smoke test
+        timeout-minutes: 5
         env:
           SDL_AUDIODRIVER: dummy
         run: |
@@ -154,6 +155,7 @@ jobs:
           cp appimage/chiaki-ng.AppImage ../rova-remote-play-linux-x86_64.AppImage
 
       - name: Smoke test
+        timeout-minutes: 5
         env:
           SDL_AUDIODRIVER: dummy
         run: |

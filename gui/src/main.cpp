@@ -148,12 +148,17 @@ int real_main(int argc, char *argv[])
 #ifdef CHIAKI_HAVE_WEBENGINE
 	QtWebEngineQuick::initialize();
 #endif
-	// Rova: "version" e "regist" não abrem janela; sem tela (ou num terminal sem DISPLAY), rodam igual.
-	for(int i = 1; i < argc && !qEnvironmentVariableIsSet("QT_QPA_PLATFORM"); i++)
+#if defined(Q_OS_LINUX)
+	// Rova: "version" e "regist" não abrem janela; num Linux sem tela (terminal sem DISPLAY/WAYLAND, CI)
+	// rodam igual. Só no Linux: no Windows sempre há tela, e o pacote não leva o módulo offscreen (faltando,
+	// o Qt abre uma caixa de erro e espera um clique).
+	const bool no_display = !qEnvironmentVariableIsSet("DISPLAY") && !qEnvironmentVariableIsSet("WAYLAND_DISPLAY");
+	for(int i = 1; i < argc && no_display && !qEnvironmentVariableIsSet("QT_QPA_PLATFORM"); i++)
 	{
 		if(strcmp(argv[i], "version") == 0 || strcmp(argv[i], "regist") == 0)
 			qputenv("QT_QPA_PLATFORM", "offscreen");
 	}
+#endif
 	QApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS
