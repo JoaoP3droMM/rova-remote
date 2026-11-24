@@ -11,8 +11,10 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <functional>
+
 // Versão do que o Rova pode pedir ao motor (comandos, opções e eventos). Sobe a cada mudança nisso.
-#define ROVA_ENGINE_PROTOCOL 1
+#define ROVA_ENGINE_PROTOCOL 2
 
 /** Escreve um evento para o Rova (uma linha "@rova {json}" no stdout, já descarregada). */
 void RovaEmit(const QJsonObject &event);
@@ -24,5 +26,11 @@ void RovaEmit(const QJsonObject &event);
  * Devolve o código de saída do programa (0 = registrado).
  */
 int RovaRegist(const QString &host, bool ps5, const QString &pin, const QString &account_id_b64);
+
+/**
+ * Comandos do Rova pela entrada padrão, um por linha ("close", "sleep", "stop"). Cada linha chega a
+ * `handler` na thread principal. Fim da entrada (Rova sem pipe, ou /dev/null) não faz nada.
+ */
+void RovaListenCommands(std::function<void(const QString &)> handler);
 
 #endif // ROVA_ENGINE_H

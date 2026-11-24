@@ -11,11 +11,16 @@ separado; a pessoa não instala nem abre nada além do Rova.
 - `regist <ip> --pin <8 dígitos> --account-id <base64> [--console ps4]`: registra o console e devolve
   as chaves num evento, sem tela.
 - `stream <nome> <ip> --registkey <chave> --morning <base64> [--console ps4]`: conexão direta, com
-  `--resolution 360|540|720|1080`, `--fps 30|60`, `--bitrate <kbit/s>` e `--codec h264|h265|hdr`.
+  `--resolution 360|540|720|1080`, `--fps 30|60`, `--bitrate <kbit/s>`, `--codec h264|h265|hdr` e
+  `--on-exit sleep|nothing` (padrão `sleep`: ao fechar, o console vai para o repouso, sem perguntar —
+  vale também para o X da janela).
+- Fechar pelo Rova: uma linha na entrada padrão do motor — `close` (segue o `--on-exit`), `sleep`
+  (repouso) ou `stop` (só desconecta). O motor avisa `closing` e, ao terminar, `quit`.
 - `version`: a versão do motor e do protocolo com o Rova.
 - Eventos para o Rova no stdout, uma linha por evento: `@rova {"event":"connected"}`. Eventos:
-  `version`, `regist`, `starting`, `connected`, `login-pin`, `quit` (com `code`, `reason`, `error`,
-  `message`).
+  `version`, `regist`, `starting`, `connected`, `login-pin`, `closing` (com `sleep`), `quit` (com
+  `code`, `reason`, `error`, `message`).
+- As opções valem antes ou depois do comando.
 
 ## Compilação
 

@@ -230,6 +230,9 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption codec_option("codec", "Stream codec: h264, h265 or hdr (stream command).", "codec");
 	parser.addOption(codec_option);
 
+	QCommandLineOption on_exit_option("on-exit", "sleep or nothing: what happens to the console when the stream is closed (stream command, default sleep, never asks).", "on-exit", "sleep");
+	parser.addOption(on_exit_option);
+
 	QCommandLineOption opengl_option("opengl", "Switch the renderer to OpenGL from now on, for systems where Vulkan shows a blank window or crashes (switch back under Settings > Video > Renderer Backend).");
 	parser.addOption(opengl_option);
 
@@ -359,6 +362,18 @@ int real_main(int argc, char *argv[])
 			}
 		}
 		
+		const QString on_exit = parser.value(on_exit_option).toLower();
+		if(on_exit != "sleep" && on_exit != "nothing")
+		{
+			fprintf(stderr, "--on-exit must be sleep or nothing\n");
+			return 1;
+		}
+		{
+			// Rova: nunca a pergunta "pôr em repouso?" ao fechar; vale também para o X da janela.
+			Settings *active = use_alt_settings ? &alt_settings : &settings;
+			active->SetDisconnectAction(on_exit == "sleep" ? DisconnectAction::AlwaysSleep : DisconnectAction::AlwaysNothing);
+			active->Sync();
+		}
 		if(!ApplyStreamQuality(use_alt_settings ? &alt_settings : &settings, chiaki_target_is_ps5(target),
 				parser.value(resolution_option), parser.value(fps_option), parser.value(bitrate_option), parser.value(codec_option)))
 			return 1;

@@ -7,6 +7,8 @@
 #include <chiaki/regist.h>
 
 #include <QByteArray>
+#include <QCoreApplication>
+#include <QMetaObject>
 #include <QJsonDocument>
 
 #include <chrono>
@@ -14,6 +16,7 @@
 #include <cstdio>
 #include <cstring>
 #include <mutex>
+#include <thread>
 
 // O console responde ao registro em poucos segundos; passou disso, algo está errado (PIN expirado, rede).
 static const auto REGIST_TIMEOUT = std::chrono::seconds(60);
@@ -123,4 +126,19 @@ int RovaRegist(const QString &host, bool ps5, const QString &pin, const QString 
 	};
 	RovaEmit(event);
 	return 0;
+}
+
+void RovaListenCommands(std::function<void(const QString &)> handler)
+{
+	// fgets bloqueia; numa thread à parte, cada linha vai para a thread principal (onde mora a sessão).
+	std::thread([handler]() {
+		char line[256];
+		while(fgets(line, sizeof(line), stdin))
+		{
+			QString command = QString::fromUtf8(line).trimmed();
+			if(command.isEmpty())
+				continue;
+			QMetaObject::invokeMethod(QCoreApplication::instance(), [handler, command]() { handler(command); }, Qt::QueuedConnection);
+		}
+	}).detach();
 }

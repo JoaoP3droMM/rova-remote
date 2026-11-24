@@ -2561,6 +2561,19 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     connect(session, &StreamSession::LoginPINRequested, this, [](bool incorrect) {
         RovaEmit({{"event", "login-pin"}, {"incorrect", incorrect}});
     });
+    // Fechar pelo Rova (Start+B no Rova): "close" segue o --on-exit (repouso por padrão), "sleep" põe o
+    // console em repouso e "stop" só desconecta. Encerrar pela sessão dá tempo de avisar o console.
+    RovaListenCommands([this](const QString &command) {
+        if (!backend)
+            return;
+        if (command == "close") {
+            RovaEmit({{"event", "closing"}, {"sleep", settings->GetDisconnectAction() == DisconnectAction::AlwaysSleep}});
+            backend->closeRequested();
+        } else if (command == "sleep" || command == "stop") {
+            RovaEmit({{"event", "closing"}, {"sleep", command == "sleep"}});
+            backend->stopSession(command == "sleep");
+        }
+    });
     connect(session, &StreamSession::SessionQuit, this, [](ChiakiQuitReason reason, const QString &reason_str) {
         RovaEmit({{"event", "quit"}, {"code", static_cast<int>(reason)}, {"reason", chiaki_quit_reason_string(reason)},
             {"error", chiaki_quit_reason_is_error(reason)}, {"message", reason_str}});
