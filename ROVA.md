@@ -14,7 +14,7 @@ separado; a pessoa não instala nem abre nada além do Rova.
   `--resolution 360|540|720|1080`, `--fps 30|60`, `--bitrate <kbit/s>`, `--codec h264|h265|hdr` e
   `--on-exit sleep|nothing` (padrão `sleep`: ao fechar, o console vai para o repouso, sem perguntar —
   vale também para o X da janela).
-- `--screen-at x,y` (ou `--screen-name <nome>`): a transmissão abre na tela do Rova, não na principal do
+- `--screen-at x,y` (reservas: `--screen-name <nome>`, `--screen-size LxA` em pixels reais): a transmissão abre na tela do Rova, não na principal do
   sistema; com `--fullscreen`, já abre em tela cheia (sem bordas).
 - Fechar pelo Rova: uma linha na entrada padrão do motor — `close` (segue o `--on-exit`), `sleep`
   (repouso) ou `stop` (só desconecta). O motor avisa `closing` e, ao terminar, `quit`.

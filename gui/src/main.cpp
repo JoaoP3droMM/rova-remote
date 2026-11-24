@@ -63,7 +63,7 @@ static const QMap<QString, CLICommand> cli_commands = {
 };
 #endif
 
-int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info, const QString &screen_at = QString(), const QString &screen_name = QString());
+int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info, const QString &screen_at = QString(), const QString &screen_name = QString(), const QString &screen_size = QString());
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit);
 static bool ApplyStreamQuality(Settings *settings, bool ps5, const QString &resolution, const QString &fps, const QString &bitrate, const QString &codec);
 
@@ -242,6 +242,9 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption screen_name_option("screen-name", "Open the stream on the screen with this name or model, when --screen-at matches none.", "name");
 	parser.addOption(screen_name_option);
 
+	QCommandLineOption screen_size_option("screen-size", "WxH in real pixels: the screen with this size, when --screen-at and --screen-name match none (screens with different scaling).", "WxH");
+	parser.addOption(screen_size_option);
+
 	QCommandLineOption on_exit_option("on-exit", "sleep or nothing: what happens to the console when the stream is closed (stream command, default sleep, never asks).", "on-exit", "sleep");
 	parser.addOption(on_exit_option);
 
@@ -404,7 +407,7 @@ int real_main(int argc, char *argv[])
 				parser.isSet(zoom_option),
 				parser.isSet(stretch_option));
 
-		return RunStream(app, connect_info, parser.value(screen_at_option), parser.value(screen_name_option));
+		return RunStream(app, connect_info, parser.value(screen_at_option), parser.value(screen_name_option), parser.value(screen_size_option));
 	}
 #ifdef CHIAKI_ENABLE_CLI
 	else if(cli_commands.contains(args[0]))
@@ -498,9 +501,10 @@ int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_ex
 /**
  * Rova: a tela onde a transmissão abre. Com dois monitores, a janela ia para a tela principal do sistema
  * (às vezes a TV), não para onde o Rova está. `at`: "x,y" de um ponto da tela do Rova; `name`: nome ou
- * modelo do monitor, se o ponto não cair em nenhuma tela (escalas diferentes). nullptr: a do sistema.
+ * modelo do monitor, se o ponto não cair em nenhuma tela (escalas diferentes); `size`: "LxA" em pixels reais,
+ * se só uma tela tem esse tamanho. nullptr: a do sistema (nunca trava por não achar).
  */
-static QScreen *RovaTargetScreen(const QString &at, const QString &name)
+static QScreen *RovaTargetScreen(const QString &at, const QString &name, const QString &size)
 {
 	const QStringList xy = at.split(',');
 	if(xy.size() == 2)
@@ -522,12 +526,30 @@ static QScreen *RovaTargetScreen(const QString &at, const QString &name)
 				return screen;
 		}
 	}
+	const QStringList wh = size.toLower().split('x');
+	if(wh.size() == 2)
+	{
+		const QSize wanted_size(wh[0].trimmed().toInt(), wh[1].trimmed().toInt());
+		QScreen *found = nullptr;
+		int matches = 0;
+		for(QScreen *screen : QGuiApplication::screens())
+		{
+			const QSize real = (QSizeF(screen->geometry().size()) * screen->devicePixelRatio()).toSize();
+			if(real == wanted_size || screen->geometry().size() == wanted_size)
+			{
+				found = screen;
+				matches++;
+			}
+		}
+		if(matches == 1)
+			return found;
+	}
 	return nullptr;
 }
 
-int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info, const QString &screen_at, const QString &screen_name)
+int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info, const QString &screen_at, const QString &screen_name, const QString &screen_size)
 {
-	if(QScreen *screen = RovaTargetScreen(screen_at, screen_name))
+	if(QScreen *screen = RovaTargetScreen(screen_at, screen_name, screen_size))
 	{
 		fprintf(stderr, "Rova: transmissão na tela %s (%s)\n", qPrintable(screen->name()), qPrintable(screen->model()));
 		RovaSetStreamScreen(screen);
