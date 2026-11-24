@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <controllermanager.h>
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
+#include <rovaengine.h>
 #include <QApplication>
 #include <QtTypes>
 
@@ -63,6 +64,7 @@ static const QMap<QString, CLICommand> cli_commands = {
 
 int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info);
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit);
+static bool ApplyStreamQuality(Settings *settings, bool ps5, const QString &resolution, const QString &fps, const QString &bitrate, const QString &codec);
 
 int real_main(int argc, char *argv[])
 {
@@ -73,10 +75,11 @@ int real_main(int argc, char *argv[])
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();
 
-	QGuiApplication::setOrganizationName("Chiaki");
-	QGuiApplication::setApplicationName("Chiaki");
+	// Rova Remote Play: nome e configuração próprios, separados de um chiaki-ng instalado no mesmo PC.
+	QGuiApplication::setOrganizationName("Rova");
+	QGuiApplication::setApplicationName("RovaRemotePlay");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
-	QGuiApplication::setApplicationDisplayName("chiaki-ng");
+	QGuiApplication::setApplicationDisplayName("Rova Remote Play");
 #if defined(Q_OS_MACOS)
 	// Use a plain CAMetalLayer for Vulkan windows. Qt's own layer presents in step with each
 	// live resize, but our swapchain presents from the render thread, so every resize step
@@ -97,7 +100,7 @@ int real_main(int argc, char *argv[])
 		QGuiApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID"));
 	else
 #endif
-		QGuiApplication::setDesktopFileName("chiaki-ng");
+		QGuiApplication::setDesktopFileName("rova-remote-play");
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
@@ -129,7 +132,7 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-    SDL_SetHint(SDL_HINT_APP_NAME, "chiaki-ng");
+    SDL_SetHint(SDL_HINT_APP_NAME, "Rova Remote Play");
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
@@ -146,7 +149,7 @@ int real_main(int argc, char *argv[])
 #ifdef Q_OS_MACOS
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking_macos.svg"));
 #else
-	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking.svg"));
+	QGuiApplication::setWindowIcon(QIcon(":/icons/rova.png"));
 #endif
 
 	QCommandLineParser parser;
@@ -156,6 +159,8 @@ int real_main(int argc, char *argv[])
 	QStringList cmds;
 	cmds.append("stream");
 	cmds.append("list");
+	cmds.append("regist");
+	cmds.append("version");
 #ifdef CHIAKI_ENABLE_CLI
 	cmds.append(cli_commands.keys());
 #endif
@@ -192,11 +197,51 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption passcode_option("passcode", "Automatically send your PlayStation login passcode (only affects users with a login passcode set on their PlayStation console).", "passcode");
 	parser.addOption(passcode_option);
 
+	// Rova: registro com o PIN, console da conexão direta e qualidade da transmissão.
+	QCommandLineOption pin_option("pin", "PIN of 8 digits from Settings > System > Remote Play > Link Device (regist command).", "pin");
+	parser.addOption(pin_option);
+
+	QCommandLineOption account_id_option("account-id", "PSN account id, base64 (regist command).", "account-id");
+	parser.addOption(account_id_option);
+
+	QCommandLineOption console_option("console", "ps5 or ps4: the console type for regist, and for stream with --registkey/--morning (default ps5).", "console", "ps5");
+	parser.addOption(console_option);
+
+	QCommandLineOption resolution_option("resolution", "Stream resolution: 360, 540, 720 or 1080 (stream command).", "resolution");
+	parser.addOption(resolution_option);
+
+	QCommandLineOption fps_option("fps", "Stream frame rate: 30 or 60 (stream command).", "fps");
+	parser.addOption(fps_option);
+
+	QCommandLineOption bitrate_option("bitrate", "Stream bitrate in kbit/s (stream command).", "bitrate");
+	parser.addOption(bitrate_option);
+
+	QCommandLineOption codec_option("codec", "Stream codec: h264, h265 or hdr (stream command).", "codec");
+	parser.addOption(codec_option);
+
 	QCommandLineOption opengl_option("opengl", "Switch the renderer to OpenGL from now on, for systems where Vulkan shows a blank window or crashes (switch back under Settings > Video > Renderer Backend).");
 	parser.addOption(opengl_option);
 
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
+
+	const QString console_type = parser.value(console_option).toLower();
+	if(console_type != "ps5" && console_type != "ps4")
+	{
+		fprintf(stderr, "--console must be ps5 or ps4\n");
+		return 1;
+	}
+	if(args.length() > 0 && args[0] == "version")
+	{
+		RovaEmit({{"event", "version"}, {"version", CHIAKI_VERSION}, {"protocol", ROVA_ENGINE_PROTOCOL}});
+		return 0;
+	}
+	if(args.length() > 0 && args[0] == "regist")
+	{
+		if(args.length() < 2)
+			parser.showHelp(1);
+		return RovaRegist(args[1], console_type == "ps5", parser.value(pin_option), parser.value(account_id_option));
+	}
 
 	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
 	bool exit_app_on_stream_exit = parser.isSet(stream_exit_option);
@@ -263,7 +308,7 @@ int real_main(int argc, char *argv[])
 		}
 		else
 		{
-			// TODO: explicit option for target
+			target = console_type == "ps5" ? CHIAKI_TARGET_PS5_1 : CHIAKI_TARGET_PS4_10;
 			regist_key = parser.value(regist_key_option).toUtf8();
 			if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
 			{
@@ -303,6 +348,10 @@ int real_main(int argc, char *argv[])
 			}
 		}
 		
+		if(!ApplyStreamQuality(use_alt_settings ? &alt_settings : &settings, chiaki_target_is_ps5(target),
+				parser.value(resolution_option), parser.value(fps_option), parser.value(bitrate_option), parser.value(codec_option)))
+			return 1;
+
 		StreamSessionConnectInfo connect_info(
 				use_alt_settings ? &alt_settings : &settings,
 				target,
@@ -342,6 +391,63 @@ int real_main(int argc, char *argv[])
 	{
 		parser.showHelp(1);
 	}
+}
+
+/**
+ * Rova: grava a qualidade pedida na linha de comando (vazio = mantém a configuração) para o tipo de
+ * console, na rede local e fora dela. Devolve false com o valor inválido no stderr.
+ */
+static bool ApplyStreamQuality(Settings *settings, bool ps5, const QString &resolution, const QString &fps, const QString &bitrate, const QString &codec)
+{
+	if(!resolution.isEmpty())
+	{
+		static const QMap<QString, ChiakiVideoResolutionPreset> presets = {
+			{"360", CHIAKI_VIDEO_RESOLUTION_PRESET_360p}, {"540", CHIAKI_VIDEO_RESOLUTION_PRESET_540p},
+			{"720", CHIAKI_VIDEO_RESOLUTION_PRESET_720p}, {"1080", CHIAKI_VIDEO_RESOLUTION_PRESET_1080p}};
+		if(!presets.contains(resolution))
+		{
+			fprintf(stderr, "--resolution must be 360, 540, 720 or 1080\n");
+			return false;
+		}
+		if(ps5) { settings->SetResolutionLocalPS5(presets[resolution]); settings->SetResolutionRemotePS5(presets[resolution]); }
+		else { settings->SetResolutionLocalPS4(presets[resolution]); settings->SetResolutionRemotePS4(presets[resolution]); }
+	}
+	if(!fps.isEmpty())
+	{
+		if(fps != "30" && fps != "60")
+		{
+			fprintf(stderr, "--fps must be 30 or 60\n");
+			return false;
+		}
+		auto preset = fps == "60" ? CHIAKI_VIDEO_FPS_PRESET_60 : CHIAKI_VIDEO_FPS_PRESET_30;
+		if(ps5) { settings->SetFPSLocalPS5(preset); settings->SetFPSRemotePS5(preset); }
+		else { settings->SetFPSLocalPS4(preset); settings->SetFPSRemotePS4(preset); }
+	}
+	if(!bitrate.isEmpty())
+	{
+		bool ok = false;
+		unsigned int value = bitrate.toUInt(&ok);
+		if(!ok || value < 2000 || value > 100000)
+		{
+			fprintf(stderr, "--bitrate must be between 2000 and 100000 kbit/s\n");
+			return false;
+		}
+		if(ps5) { settings->SetBitrateLocalPS5(value); settings->SetBitrateRemotePS5(value); }
+		else { settings->SetBitrateLocalPS4(value); settings->SetBitrateRemotePS4(value); }
+	}
+	if(!codec.isEmpty())
+	{
+		static const QMap<QString, ChiakiCodec> codecs = {{"h264", CHIAKI_CODEC_H264}, {"h265", CHIAKI_CODEC_H265}, {"hdr", CHIAKI_CODEC_H265_HDR}};
+		if(!codecs.contains(codec) || (!ps5 && codec != "h264"))
+		{
+			fprintf(stderr, "--codec must be h264, h265 or hdr (PS4: h264 only)\n");
+			return false;
+		}
+		if(ps5) { settings->SetCodecLocalPS5(codecs[codec]); settings->SetCodecRemotePS5(codecs[codec]); }
+		else settings->SetCodecPS4(codecs[codec]);
+	}
+	settings->Sync();
+	return true;
 }
 
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)

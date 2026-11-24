@@ -1,4 +1,5 @@
 #include "qmlmainwindow.h"
+#include "rovaengine.h"
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
 #include "chiaki/log.h"
@@ -2549,6 +2550,21 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
         setVideoMode(VideoMode::Zoom);
     else if (connect_info.stretch)
         setVideoMode(VideoMode::Stretch);
+
+    // Rova: o Rova acompanha a transmissão por estes eventos (conectou, pediu a senha do console, acabou).
+    RovaEmit({{"event", "starting"}});
+    StreamSession *rova_session = session;
+    connect(session, &StreamSession::ConnectedChanged, this, [rova_session]() {
+        if (rova_session->IsConnected())
+            RovaEmit({{"event", "connected"}});
+    });
+    connect(session, &StreamSession::LoginPINRequested, this, [](bool incorrect) {
+        RovaEmit({{"event", "login-pin"}, {"incorrect", incorrect}});
+    });
+    connect(session, &StreamSession::SessionQuit, this, [](ChiakiQuitReason reason, const QString &reason_str) {
+        RovaEmit({{"event", "quit"}, {"code", static_cast<int>(reason)}, {"reason", chiaki_quit_reason_string(reason)},
+            {"error", chiaki_quit_reason_is_error(reason)}, {"message", reason_str}});
+    });
 
     connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
 }

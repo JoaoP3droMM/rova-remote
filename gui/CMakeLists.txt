@@ -22,6 +22,8 @@ endif()
 set(SOURCE_FILES
 	include/exception.h
 	src/main.cpp
+	include/rovaengine.h
+	src/rovaengine.cpp
 	include/discoverymanager.h
 	src/discoverymanager.cpp
 	include/streamsession.h
