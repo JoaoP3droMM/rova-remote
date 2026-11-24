@@ -119,6 +119,10 @@ int real_main(int argc, char *argv[])
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
 	qputenv("ANV_VIDEO_DECODE", "1");
 	qputenv("RADV_PERFTEST", "video_decode");
+	// Rova: o Mesa 26 trocou RADV_PERFTEST por RADV_EXPERIMENTAL; sem ele a placa AMD recusa o HEVC pelo
+	// Vulkan ("Device does not support decoding hevc") e o vídeo cai para outro decodificador.
+	if(!qEnvironmentVariableIsSet("RADV_EXPERIMENTAL"))
+		qputenv("RADV_EXPERIMENTAL", "video_decode");
 #endif
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if (qEnvironmentVariableIsSet("SteamDeck"))
