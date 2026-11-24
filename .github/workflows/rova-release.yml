@@ -157,6 +157,8 @@ jobs:
         env:
           SDL_AUDIODRIVER: dummy
         run: |
+          # O AppImage usa as bibliotecas de vídeo do sistema (todo PC Linux com tela tem; a máquina do CI não).
+          sudo apt-get install -y libva2 libva-drm2 libva-x11-2 libva-wayland2 libvdpau1 libegl1 libgl1 libopengl0 libxkbcommon0 libfontconfig1
           chmod +x rova-remote-play-linux-x86_64.AppImage
           QT_QPA_PLATFORM=offscreen ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run version | tee version.txt
           grep -q '^@rova {"event":"version"' version.txt
