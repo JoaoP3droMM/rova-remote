@@ -144,6 +144,12 @@ int real_main(int argc, char *argv[])
 #ifdef CHIAKI_HAVE_WEBENGINE
 	QtWebEngineQuick::initialize();
 #endif
+	// Rova: "version" e "regist" não abrem janela; sem tela (ou num terminal sem DISPLAY), rodam igual.
+	for(int i = 1; i < argc && !qEnvironmentVariableIsSet("QT_QPA_PLATFORM"); i++)
+	{
+		if(strcmp(argv[i], "version") == 0 || strcmp(argv[i], "regist") == 0)
+			qputenv("QT_QPA_PLATFORM", "offscreen");
+	}
 	QApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS
@@ -153,7 +159,8 @@ int real_main(int argc, char *argv[])
 #endif
 
 	QCommandLineParser parser;
-	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
+	// Rova: as opções valem em qualquer posição (o chiaki-ng só lia as que vinham antes do comando).
+	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsOptions);
 	parser.addHelpOption();
 	
 	QStringList cmds;

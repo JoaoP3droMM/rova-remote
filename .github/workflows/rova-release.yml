@@ -160,8 +160,14 @@ jobs:
           # O AppImage usa as bibliotecas de vídeo do sistema (todo PC Linux com tela tem; a máquina do CI não).
           sudo apt-get install -y libva2 libva-drm2 libva-x11-2 libva-wayland2 libvdpau1 libegl1 libgl1 libopengl0 libxkbcommon0 libfontconfig1
           chmod +x rova-remote-play-linux-x86_64.AppImage
-          QT_QPA_PLATFORM=offscreen ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run version | tee version.txt
+          # Sem DISPLAY e sem QT_QPA_PLATFORM: o "version" e o "regist" têm de rodar sem tela.
+          ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run version | tee version.txt
           grep -q '^@rova {"event":"version"' version.txt
+          # Opções depois do comando também valem (o PIN curto é recusado antes de ir à rede).
+          ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run regist 127.0.0.1 --pin 12 --account-id AAAAAAAAAAA= | tee regist.txt || true
+          grep -q '"error":"pin"' regist.txt
+          ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run regist 127.0.0.1 --pin 12345678 --account-id AAAA | tee regist2.txt || true
+          grep -q '"error":"account-id"' regist2.txt
 
       - uses: actions/upload-artifact@v4
         with:
