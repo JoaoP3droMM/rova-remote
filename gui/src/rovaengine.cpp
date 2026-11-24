@@ -142,3 +142,15 @@ void RovaListenCommands(std::function<void(const QString &)> handler)
 		}
 	}).detach();
 }
+
+static QScreen *rova_stream_screen = nullptr;
+
+void RovaSetStreamScreen(QScreen *screen)
+{
+	rova_stream_screen = screen;
+}
+
+QScreen *RovaStreamScreen()
+{
+	return rova_stream_screen;
+}

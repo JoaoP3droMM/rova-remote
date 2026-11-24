@@ -14,7 +14,7 @@
 #include <functional>
 
 // Versão do que o Rova pode pedir ao motor (comandos, opções e eventos). Sobe a cada mudança nisso.
-#define ROVA_ENGINE_PROTOCOL 2
+#define ROVA_ENGINE_PROTOCOL 3
 
 /** Escreve um evento para o Rova (uma linha "@rova {json}" no stdout, já descarregada). */
 void RovaEmit(const QJsonObject &event);
@@ -32,5 +32,14 @@ int RovaRegist(const QString &host, bool ps5, const QString &pin, const QString 
  * `handler` na thread principal. Fim da entrada (Rova sem pipe, ou /dev/null) não faz nada.
  */
 void RovaListenCommands(std::function<void(const QString &)> handler);
+
+class QScreen;
+
+/**
+ * A tela escolhida para a transmissão (--screen-at / --screen-name): a janela vai para ela antes de entrar
+ * em tela cheia. nullptr = a tela principal do sistema.
+ */
+void RovaSetStreamScreen(QScreen *screen);
+QScreen *RovaStreamScreen();
 
 #endif // ROVA_ENGINE_H

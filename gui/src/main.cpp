@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <qmlmainwindow.h>
 #include <rovaengine.h>
 #include <QApplication>
+#include <QScreen>
 #include <QtTypes>
 
 #ifdef CHIAKI_ENABLE_CLI
@@ -62,7 +63,7 @@ static const QMap<QString, CLICommand> cli_commands = {
 };
 #endif
 
-int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info);
+int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info, const QString &screen_at = QString(), const QString &screen_name = QString());
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit);
 static bool ApplyStreamQuality(Settings *settings, bool ps5, const QString &resolution, const QString &fps, const QString &bitrate, const QString &codec);
 
@@ -235,6 +236,12 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption codec_option("codec", "Stream codec: h264, h265 or hdr (stream command).", "codec");
 	parser.addOption(codec_option);
 
+	QCommandLineOption screen_at_option("screen-at", "x,y: open the stream on the screen that contains this point (Rova sends the center of its own screen).", "x,y");
+	parser.addOption(screen_at_option);
+
+	QCommandLineOption screen_name_option("screen-name", "Open the stream on the screen with this name or model, when --screen-at matches none.", "name");
+	parser.addOption(screen_name_option);
+
 	QCommandLineOption on_exit_option("on-exit", "sleep or nothing: what happens to the console when the stream is closed (stream command, default sleep, never asks).", "on-exit", "sleep");
 	parser.addOption(on_exit_option);
 
@@ -397,7 +404,7 @@ int real_main(int argc, char *argv[])
 				parser.isSet(zoom_option),
 				parser.isSet(stretch_option));
 
-		return RunStream(app, connect_info);
+		return RunStream(app, connect_info, parser.value(screen_at_option), parser.value(screen_name_option));
 	}
 #ifdef CHIAKI_ENABLE_CLI
 	else if(cli_commands.contains(args[0]))
@@ -488,9 +495,49 @@ int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_ex
 	return app.exec();
 }
 
-int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info)
+/**
+ * Rova: a tela onde a transmissão abre. Com dois monitores, a janela ia para a tela principal do sistema
+ * (às vezes a TV), não para onde o Rova está. `at`: "x,y" de um ponto da tela do Rova; `name`: nome ou
+ * modelo do monitor, se o ponto não cair em nenhuma tela (escalas diferentes). nullptr: a do sistema.
+ */
+static QScreen *RovaTargetScreen(const QString &at, const QString &name)
 {
+	const QStringList xy = at.split(',');
+	if(xy.size() == 2)
+	{
+		bool okx = false, oky = false;
+		const QPoint point(xy[0].trimmed().toInt(&okx), xy[1].trimmed().toInt(&oky));
+		if(okx && oky)
+			if(QScreen *screen = QGuiApplication::screenAt(point))
+				return screen;
+	}
+	const QString wanted = name.trimmed();
+	if(!wanted.isEmpty())
+	{
+		for(QScreen *screen : QGuiApplication::screens())
+		{
+			if(screen->name().compare(wanted, Qt::CaseInsensitive) == 0)
+				return screen;
+			if(!screen->model().isEmpty() && wanted.contains(screen->model(), Qt::CaseInsensitive))
+				return screen;
+		}
+	}
+	return nullptr;
+}
+
+int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info, const QString &screen_at, const QString &screen_name)
+{
+	if(QScreen *screen = RovaTargetScreen(screen_at, screen_name))
+	{
+		fprintf(stderr, "Rova: transmissão na tela %s (%s)\n", qPrintable(screen->name()), qPrintable(screen->model()));
+		RovaSetStreamScreen(screen);
+	}
 	QmlMainWindow main_window(connect_info);
-	main_window.show();
+	// Rova: com tela cheia pedida, abre já em tela cheia. O show() comum, chamado depois, desfazia a tela
+	// cheia no X11 (janela com bordas e barra de título).
+	if(connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
+		main_window.showFullScreen();
+	else
+		main_window.show();
 	return app.exec();
 }

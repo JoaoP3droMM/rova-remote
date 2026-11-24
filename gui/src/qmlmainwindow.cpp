@@ -1,5 +1,6 @@
 #include "qmlmainwindow.h"
 #include "rovaengine.h"
+#include <QScreen>
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
 #include "chiaki/log.h"
@@ -2544,6 +2545,11 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     init(connect_info.settings);
     backend->createSession(connect_info);
 
+    // Rova: a tela onde o Rova está (com dois monitores, não a principal do sistema), antes da tela cheia.
+    if (QScreen *screen = RovaStreamScreen()) {
+        setScreen(screen);
+        setPosition(screen->geometry().center() - QPoint(width() / 2, height() / 2));
+    }
     if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
         fullscreenTime();
     if (connect_info.zoom)
