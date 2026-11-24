@@ -555,11 +555,7 @@ int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info
 		RovaSetStreamScreen(screen);
 	}
 	QmlMainWindow main_window(connect_info);
-	// Rova: com tela cheia pedida, abre já em tela cheia. O show() comum, chamado depois, desfazia a tela
-	// cheia no X11 (janela com bordas e barra de título).
-	if(connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
-		main_window.showFullScreen();
-	else
-		main_window.show();
+	// O show() do QmlMainWindow cria a tela (QML) e mantém a tela cheia pedida na tela escolhida.
+	main_window.show();
 	return app.exec();
 }

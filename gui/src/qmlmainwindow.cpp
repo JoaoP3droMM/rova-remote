@@ -2945,10 +2945,20 @@ void QmlMainWindow::show()
         QMetaObject::invokeMethod(quick_item, "showRendererFallbackDialog",
                                   Q_ARG(QVariant, QVariant::fromValue(reason)));
     }
-    auto screen_size = QGuiApplication::primaryScreen()->availableSize();
+    // Rova: na conexão direta com tela cheia (pedida no construtor), a janela fica em tela cheia e na tela
+    // escolhida (a do Rova). Antes, o showNormal()/showMaximized() abaixo desfazia a tela cheia (bordas e
+    // barra de título no X11) e o resize mandava a janela para a tela principal do sistema.
+    const bool rova_fullscreen = direct_stream && windowState() == Qt::WindowFullScreen;
+    QScreen *rova_screen = RovaStreamScreen() ? RovaStreamScreen() : QGuiApplication::primaryScreen();
+    auto screen_size = rova_screen->availableSize();
     resize(screen_size);
 
-    if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
+    if (rova_fullscreen) {
+        setScreen(rova_screen);
+        setGeometry(rova_screen->geometry());
+        showFullScreen();
+    }
+    else if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
         fullscreenTime();
     else
     {
