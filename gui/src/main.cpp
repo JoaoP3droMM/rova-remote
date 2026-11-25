@@ -76,11 +76,11 @@ int real_main(int argc, char *argv[])
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();
 
-	// Rova Remote Play: nome e configuração próprios, separados de um chiaki-ng instalado no mesmo PC.
+	// Rova-Remote: nome e configuração próprios, separados de um chiaki-ng instalado no mesmo PC.
 	QGuiApplication::setOrganizationName("Rova");
-	QGuiApplication::setApplicationName("RovaRemotePlay");
+	QGuiApplication::setApplicationName("RovaRemote");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
-	QGuiApplication::setApplicationDisplayName("Rova Remote Play");
+	QGuiApplication::setApplicationDisplayName("Rova-Remote");
 #if defined(Q_OS_MACOS)
 	// Use a plain CAMetalLayer for Vulkan windows. Qt's own layer presents in step with each
 	// live resize, but our swapchain presents from the render thread, so every resize step
@@ -101,7 +101,7 @@ int real_main(int argc, char *argv[])
 		QGuiApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID"));
 	else
 #endif
-		QGuiApplication::setDesktopFileName("rova-remote-play");
+		QGuiApplication::setDesktopFileName("rova-remote");
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
@@ -137,7 +137,7 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-    SDL_SetHint(SDL_HINT_APP_NAME, "Rova Remote Play");
+    SDL_SetHint(SDL_HINT_APP_NAME, "Rova-Remote");
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{

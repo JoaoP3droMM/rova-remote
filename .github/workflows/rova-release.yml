@@ -1,7 +1,7 @@
-# Rova Remote Play: compila o motor para Windows (x64, MSYS2) e Linux (AppImage x86_64) e, numa tag
+# Rova-Remote: compila o motor para Windows (x64, MSYS2) e Linux (AppImage x86_64) e, numa tag
 # rova-v*, publica os dois no Release do GitHub, de onde o Rova Games baixa. Os passos de compilação
 # seguem os do chiaki-ng (build-release.yaml), sem o instalador e sem a assinatura.
-name: Rova Remote Play
+name: Rova-Remote
 
 on:
   push:
@@ -99,7 +99,7 @@ jobs:
         run: cmake --build build --config Release --clean-first --target chiaki
 
       - name: Deploy
-        run: ./scripts/deploy-windows-msys2.sh rova-remote-play build/gui/chiaki.exe "${{ github.workspace }}/build/third-party/cpp-steam-tools" /mingw64 gui/src/qml
+        run: ./scripts/deploy-windows-msys2.sh rova-remote build/gui/chiaki.exe "${{ github.workspace }}/build/third-party/cpp-steam-tools" /mingw64 gui/src/qml
 
       # O motor responde sem abrir janela: "version" e um "regist" com PIN inválido (falha antes da rede).
       - name: Smoke test
@@ -107,19 +107,19 @@ jobs:
         env:
           SDL_AUDIODRIVER: dummy
         run: |
-          cd rova-remote-play
+          cd rova-remote
           ./chiaki.exe version | tee version.txt
           grep -q '^@rova {"event":"version"' version.txt
           ./chiaki.exe regist 127.0.0.1 --pin 12 --account-id AAAAAAAAAAA= | tee regist.txt || true
           grep -q '"error":"pin"' regist.txt
 
       - name: Package
-        run: zip -qr rova-remote-play-windows-x64.zip rova-remote-play
+        run: zip -qr rova-remote-windows-x64.zip rova-remote
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rova-remote-play-windows-x64
-          path: rova-remote-play-windows-x64.zip
+          name: rova-remote-windows-x64
+          path: rova-remote-windows-x64.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -152,7 +152,7 @@ jobs:
             --cap-add SYS_ADMIN \
             -t docker.io/streetpea/chiaki-ng-builder:qt6.9.3 \
             /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
-          cp appimage/chiaki-ng.AppImage ../rova-remote-play-linux-x86_64.AppImage
+          cp appimage/chiaki-ng.AppImage ../rova-remote-linux-x86_64.AppImage
 
       - name: Smoke test
         timeout-minutes: 5
@@ -161,20 +161,20 @@ jobs:
         run: |
           # O AppImage usa as bibliotecas de vídeo do sistema (todo PC Linux com tela tem; a máquina do CI não).
           sudo apt-get install -y libva2 libva-drm2 libva-x11-2 libva-wayland2 libvdpau1 libegl1 libgl1 libopengl0 libxkbcommon0 libfontconfig1
-          chmod +x rova-remote-play-linux-x86_64.AppImage
+          chmod +x rova-remote-linux-x86_64.AppImage
           # Sem DISPLAY e sem QT_QPA_PLATFORM: o "version" e o "regist" têm de rodar sem tela.
-          ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run version | tee version.txt
+          ./rova-remote-linux-x86_64.AppImage --appimage-extract-and-run version | tee version.txt
           grep -q '^@rova {"event":"version"' version.txt
           # Opções depois do comando também valem (o PIN curto é recusado antes de ir à rede).
-          ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run regist 127.0.0.1 --pin 12 --account-id AAAAAAAAAAA= | tee regist.txt || true
+          ./rova-remote-linux-x86_64.AppImage --appimage-extract-and-run regist 127.0.0.1 --pin 12 --account-id AAAAAAAAAAA= | tee regist.txt || true
           grep -q '"error":"pin"' regist.txt
-          ./rova-remote-play-linux-x86_64.AppImage --appimage-extract-and-run regist 127.0.0.1 --pin 12345678 --account-id AAAA | tee regist2.txt || true
+          ./rova-remote-linux-x86_64.AppImage --appimage-extract-and-run regist 127.0.0.1 --pin 12345678 --account-id AAAA | tee regist2.txt || true
           grep -q '"error":"account-id"' regist2.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rova-remote-play-linux-x86_64
-          path: rova-remote-play-linux-x86_64.AppImage
+          name: rova-remote-linux-x86_64
+          path: rova-remote-linux-x86_64.AppImage
           if-no-files-found: error
           retention-days: 7
 
@@ -192,5 +192,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            rova-remote-play-windows-x64.zip
-            rova-remote-play-linux-x86_64.AppImage
+            rova-remote-windows-x64.zip
+            rova-remote-linux-x86_64.AppImage

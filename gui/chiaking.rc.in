@@ -23,12 +23,12 @@ BEGIN
         BEGIN
             VALUE "Comments", "Rova Games remote play engine, based on chiaki-ng"
             VALUE "CompanyName", "Rova Games"
-            VALUE "FileDescription", "Rova Remote Play"
+            VALUE "FileDescription", "Rova-Remote"
             VALUE "FileVersion", VER_FILEVERSION_STR
-            VALUE "InternalName", "rova-remote-play"
+            VALUE "InternalName", "rova-remote"
             VALUE "LegalCopyright", "AGPLv3 Stret Pea 2022, Rova Games 2026"
             VALUE "OriginalFilename", "chiaki.exe"
-            VALUE "ProductName", "Rova Remote Play"
+            VALUE "ProductName", "Rova-Remote"
             VALUE "ProductVersion", VER_PRODUCTVERSION_STR
         END
     END

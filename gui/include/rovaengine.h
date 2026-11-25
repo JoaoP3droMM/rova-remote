@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 //
-// Rova Remote Play: o que o Rova Games precisa do motor, sem janela nem tela do chiaki-ng.
+// Rova-Remote: o que o Rova Games precisa do motor, sem janela nem tela do chiaki-ng.
 // - Eventos em JSON, uma linha por evento no stdout, começando com "@rova " (o Rova lê só essas
 //   linhas; o resto do stdout é log). Ex.: @rova {"event":"connected"}
 // - "regist": registra o console com o PIN e devolve as chaves num evento, sem gravar nada.

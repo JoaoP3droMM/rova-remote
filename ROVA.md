@@ -1,4 +1,4 @@
-# Rova Remote Play
+# Rova-Remote
 
 Motor de PlayStation Remote Play do [Rova Games](https://github.com/JoaoP3droMM/i-can-play-everything),
 baseado no [chiaki-ng](https://github.com/streetpea/chiaki-ng) e sob a mesma licença (AGPL-3.0, veja
@@ -7,7 +7,7 @@ separado; a pessoa não instala nem abre nada além do Rova.
 
 ## O que muda em relação ao chiaki-ng
 
-- Nome, ícone e configuração próprios (`Rova/RovaRemotePlay`), sem mexer num chiaki-ng instalado.
+- Nome, ícone e configuração próprios (`Rova/RovaRemote`), sem mexer num chiaki-ng instalado.
 - `regist <ip> --pin <8 dígitos> --account-id <base64> [--console ps4]`: registra o console e devolve
   as chaves num evento, sem tela.
 - `stream <nome> <ip> --registkey <chave> --morning <base64> [--console ps4]`: conexão direta, com
