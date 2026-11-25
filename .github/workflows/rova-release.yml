@@ -103,7 +103,7 @@ jobs:
 
       # O vídeo (libplacebo) exige o carregador do Vulkan (vulkan-1.dll), que só existe no PC se o driver da
       # placa de vídeo o instalou: sem ele o motor nem abre (teste num notebook com Windows, 25/11/2026). O
-      # carregador vai junto; sem driver Vulkan, o motor segue pelo OpenGL/D3D.
+      # carregador vai junto (se o motor abre sem driver Vulkan no PC ainda não foi conferido).
       - name: Vulkan loader
         run: |
           cp /mingw64/bin/vulkan-1.dll rova-remote/
